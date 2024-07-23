@@ -61,17 +61,17 @@ impl DocsEngine {
         &self,
         _req: AuthorListRequest,
     ) -> impl Stream<Item = RpcResult<AuthorListResponse>> {
-        let (tx, rx) = flume::bounded(ITER_CHANNEL_CAP);
+        let (tx, rx) = async_channel::bounded(ITER_CHANNEL_CAP);
         let sync = self.sync.clone();
         // we need to spawn a task to send our request to the sync handle, because the method
         // itself must be sync.
         tokio::task::spawn(async move {
             let tx2 = tx.clone();
             if let Err(err) = sync.list_authors(tx).await {
-                tx2.send_async(Err(err)).await.ok();
+                tx2.send(Err(err)).await.ok();
             }
         });
-        rx.into_stream().map(|r| {
+        rx.map(|r| {
             r.map(|author_id| AuthorListResponse { author_id })
                 .map_err(Into::into)
         })
@@ -112,17 +112,17 @@ impl DocsEngine {
     }
 
     pub fn doc_list(&self, _req: DocListRequest) -> impl Stream<Item = RpcResult<DocListResponse>> {
-        let (tx, rx) = flume::bounded(ITER_CHANNEL_CAP);
+        let (tx, rx) = async_channel::bounded(ITER_CHANNEL_CAP);
         let sync = self.sync.clone();
         // we need to spawn a task to send our request to the sync handle, because the method
         // itself must be sync.
         tokio::task::spawn(async move {
             let tx2 = tx.clone();
             if let Err(err) = sync.list_replicas(tx).await {
-                tx2.send_async(Err(err)).await.ok();
+                tx2.send(Err(err)).await.ok();
             }
         });
-        rx.into_stream().map(|r| {
+        rx.map(|r| {
             r.map(|(id, capability)| DocListResponse { id, capability })
                 .map_err(Into::into)
         })
@@ -251,18 +251,17 @@ impl DocsEngine {
         req: GetManyRequest,
     ) -> impl Stream<Item = RpcResult<GetManyResponse>> {
         let GetManyRequest { doc_id, query } = req;
-        let (tx, rx) = flume::bounded(ITER_CHANNEL_CAP);
+        let (tx, rx) = async_channel::bounded(ITER_CHANNEL_CAP);
         let sync = self.sync.clone();
         // we need to spawn a task to send our request to the sync handle, because the method
         // itself must be sync.
         tokio::task::spawn(async move {
             let tx2 = tx.clone();
             if let Err(err) = sync.get_many(doc_id, query, tx).await {
-                tx2.send_async(Err(err)).await.ok();
+                tx2.send(Err(err)).await.ok();
             }
         });
-        rx.into_stream()
-            .map(|r| r.map(|entry| GetManyResponse { entry }).map_err(Into::into))
+        rx.map(|r| r.map(|entry| GetManyResponse { entry }).map_err(Into::into))
     }
 
     pub async fn doc_get_exact(&self, req: GetExactRequest) -> RpcResult<GetExactResponse> {
