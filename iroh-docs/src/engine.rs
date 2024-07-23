@@ -178,7 +178,8 @@ impl Engine {
 
         // Subscribe to events from the [`live::Actor`].
         let b = {
-            let (s, r) = flume::bounded(SUBSCRIBE_CHANNEL_CAP);
+            let (s, r) = async_channel::bounded(SUBSCRIBE_CHANNEL_CAP);
+            let r = Box::pin(r);
             let (reply, reply_rx) = oneshot::channel();
             this.to_live_actor
                 .send(ToLiveActor::Subscribe {
@@ -188,7 +189,7 @@ impl Engine {
                 })
                 .await?;
             reply_rx.await??;
-            r.into_stream().map(|event| Ok(LiveEvent::from(event)))
+            r.map(|event| Ok(LiveEvent::from(event)))
         };
 
         Ok(a.or(b))

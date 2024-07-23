@@ -2734,6 +2734,7 @@ name = "iroh-docs"
 version = "0.21.0"
 dependencies = [
  "anyhow",
+ "async-channel",
  "bytes",
  "derive_more",
  "ed25519-dalek",
@@ -2838,6 +2839,7 @@ name = "iroh-net"
 version = "0.21.0"
 dependencies = [
  "anyhow",
+ "async-channel",
  "axum",
  "backoff",
  "base64 0.22.1",
