@@ -581,6 +581,9 @@ impl Drop for SyncHandle {
     fn drop(&mut self) {
         // this means we're dropping the last reference
         if let Some(handle) = Arc::get_mut(&mut self.join_handle) {
+            // this call is the reason tx can not be a tokio mpsc channel.
+            // we have no control about where drop is called, yet tokio send_blocking panics
+            // when called from inside a tokio runtime.
             self.tx.send_blocking(Action::Shutdown { reply: None }).ok();
             let handle = handle.take().expect("this can only run once");
             if let Err(err) = handle.join() {
